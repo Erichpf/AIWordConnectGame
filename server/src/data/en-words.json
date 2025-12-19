@@ -1,0 +1,42 @@
+{
+  "learning": [
+    { "word": "acquire", "meaning": "to gain knowledge or skill", "hint": "Example: She acquired fluency in French." },
+    { "word": "comprehend", "meaning": "to understand fully", "hint": "Example: It's hard to comprehend such complex ideas." },
+    { "word": "analyze", "meaning": "to examine in detail", "hint": "Example: Scientists analyze data carefully." },
+    { "word": "memorize", "meaning": "to commit to memory", "hint": "Example: Students memorize vocabulary words." },
+    { "word": "deduce", "meaning": "to reach a conclusion by reasoning", "hint": "Example: We can deduce the answer from the clues." },
+    { "word": "synthesize", "meaning": "to combine parts into a whole", "hint": "Example: The report synthesizes multiple studies." },
+    { "word": "evaluate", "meaning": "to assess the value of something", "hint": "Example: Teachers evaluate student progress." },
+    { "word": "interpret", "meaning": "to explain the meaning of", "hint": "Example: How do you interpret this poem?" }
+  ],
+  "virtue": [
+    { "word": "integrity", "meaning": "honesty and moral principles", "hint": "Example: She is known for her integrity." },
+    { "word": "compassion", "meaning": "sympathy for others' suffering", "hint": "Example: He showed compassion to the homeless." },
+    { "word": "humility", "meaning": "modest view of one's importance", "hint": "Example: Despite success, he maintained humility." },
+    { "word": "perseverance", "meaning": "persistence despite difficulties", "hint": "Example: Her perseverance led to success." },
+    { "word": "gratitude", "meaning": "thankfulness and appreciation", "hint": "Example: Express gratitude for small things." },
+    { "word": "empathy", "meaning": "ability to understand others' feelings", "hint": "Example: Good leaders show empathy." },
+    { "word": "diligence", "meaning": "careful and persistent effort", "hint": "Example: His diligence paid off." },
+    { "word": "altruism", "meaning": "selfless concern for others", "hint": "Example: Altruism benefits society." }
+  ],
+  "growth": [
+    { "word": "resilience", "meaning": "ability to recover from setbacks", "hint": "Example: Resilience helps overcome challenges." },
+    { "word": "ambition", "meaning": "strong desire to achieve", "hint": "Example: Her ambition drove her forward." },
+    { "word": "determination", "meaning": "firmness of purpose", "hint": "Example: Determination leads to success." },
+    { "word": "adaptability", "meaning": "ability to adjust to change", "hint": "Example: Adaptability is crucial in business." },
+    { "word": "initiative", "meaning": "ability to act independently", "hint": "Example: Take initiative in your career." },
+    { "word": "persistence", "meaning": "continuing despite obstacles", "hint": "Example: Persistence is key to mastery." },
+    { "word": "motivation", "meaning": "reason for acting a certain way", "hint": "Example: Find your inner motivation." },
+    { "word": "discipline", "meaning": "training to follow rules", "hint": "Example: Self-discipline leads to success." }
+  ],
+  "technology": [
+    { "word": "algorithm", "meaning": "step-by-step problem-solving procedure", "hint": "Example: Search engines use complex algorithms." },
+    { "word": "innovation", "meaning": "introduction of new ideas", "hint": "Example: Innovation drives progress." },
+    { "word": "interface", "meaning": "point of interaction between systems", "hint": "Example: The user interface is intuitive." },
+    { "word": "optimize", "meaning": "to make the best use of", "hint": "Example: Optimize your code for speed." },
+    { "word": "integrate", "meaning": "to combine into a whole", "hint": "Example: Integrate new features seamlessly." },
+    { "word": "automate", "meaning": "to make operate automatically", "hint": "Example: Automate repetitive tasks." },
+    { "word": "debug", "meaning": "to find and fix errors", "hint": "Example: Debug the code before release." },
+    { "word": "deploy", "meaning": "to put into use or action", "hint": "Example: Deploy the application to production." }
+  ]
+}

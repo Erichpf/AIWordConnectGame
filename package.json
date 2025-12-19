@@ -1,0 +1,23 @@
+{
+  "name": "ai-word-connect-game",
+  "version": "1.0.0",
+  "description": "智连词境 - AI Word Connect Game",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "npm run build --workspace=server",
+    "test": "npm run test --workspaces --if-present",
+    "test:client": "npm run test --workspace=client",
+    "test:server": "npm run test --workspace=server"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
