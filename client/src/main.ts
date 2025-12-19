@@ -10,16 +10,21 @@ import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
 import { GameScene } from './scenes/GameScene'
 
-// Game configuration
+// Game configuration - 使用更高分辨率避免模糊
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: 800,
-  height: 600,
-  backgroundColor: '#1a1a2e',
+  width: 1280,
+  height: 800,
+  backgroundColor: '#0f0f1a',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  render: {
+    pixelArt: false,
+    antialias: true,
+    roundPixels: true
   },
   scene: [BootScene, MenuScene, GameScene]
 }

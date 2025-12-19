@@ -54,6 +54,17 @@ export class GameScene extends Phaser.Scene {
   // Stats tracking
   private correctCount: number = 0
   private wrongCount: number = 0
+  
+  // 创意功能
+  private comboCount: number = 0
+  private maxCombo: number = 0
+  private comboText!: Phaser.GameObjects.Text
+  private progressBar!: Phaser.GameObjects.Graphics
+  private progressBg!: Phaser.GameObjects.Rectangle
+  private totalPairs: number = 0
+  private remainingPairs: number = 0
+  private hintButton!: Phaser.GameObjects.Container
+  private particles!: Phaser.GameObjects.Particles.ParticleEmitter
 
   constructor() {
     super({ key: 'GameScene' })
@@ -115,11 +126,21 @@ export class GameScene extends Phaser.Scene {
         words
       )
       
+      // 初始化进度追踪
+      this.totalPairs = pairCount
+      this.remainingPairs = pairCount
+      
       // Calculate board offset to center it
       this.calculateBoardOffset()
       
+      // 绘制棋盘背景装饰
+      this.drawBoardBackground()
+      
       // Render board
       this.renderBoard()
+      
+      // 创建粒子系统
+      this.createParticleSystem()
       
       // Start timer
       this.startTime = Date.now()
@@ -257,35 +278,269 @@ export class GameScene extends Phaser.Scene {
 
   private createUI(): void {
     const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    
+    // 顶部栏背景
+    const topBar = this.add.rectangle(width / 2, 30, width, 60, 0x1a1a2e, 0.9)
+    topBar.setStrokeStyle(1, 0x333355)
     
     // Title
-    this.add.text(width / 2, 20, '智连词境', {
-      fontSize: '24px',
+    this.add.text(width / 2, 30, '智连词境', {
+      fontSize: '28px',
       color: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      fontFamily: 'Noto Sans SC, sans-serif'
     }).setOrigin(0.5)
     
-    // Score display
-    this.scoreText = this.add.text(20, 20, '正确: 0 | 错误: 0', {
-      fontSize: '16px',
-      color: '#ffffff'
-    })
+    // Score display with icons
+    const scoreContainer = this.add.container(140, 30)
+    const scoreBg = this.add.rectangle(0, 0, 200, 40, 0x2a2a3e, 0.8)
+    scoreBg.setStrokeStyle(1, 0x444466)
+    this.scoreText = this.add.text(0, 0, '✓ 0  |  ✗ 0', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5)
+    scoreContainer.add([scoreBg, this.scoreText])
     
-    // Timer display
-    this.timerText = this.add.text(width - 20, 20, '00:00', {
-      fontSize: '16px',
-      color: '#ffffff'
-    }).setOrigin(1, 0)
+    // Timer display with icon
+    const timerContainer = this.add.container(width - 100, 30)
+    const timerBg = this.add.rectangle(0, 0, 120, 40, 0x2a2a3e, 0.8)
+    timerBg.setStrokeStyle(1, 0x444466)
+    this.timerText = this.add.text(0, 0, '⏱ 00:00', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5)
+    timerContainer.add([timerBg, this.timerText])
     
-    // Back button
-    const backBtn = this.add.text(20, 560, '← 返回菜单', {
+    // Back button - 更美观的样式
+    const backBtn = this.add.container(70, height - 35)
+    const backBg = this.add.rectangle(0, 0, 120, 36, 0x2a2a3e, 0.8)
+    backBg.setStrokeStyle(1, 0x444466)
+    const backText = this.add.text(0, 0, '← 返回菜单', {
       fontSize: '14px',
-      color: '#aaaaaa'
-    }).setInteractive({ useHandCursor: true })
+      color: '#aaaaaa',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5)
+    backBtn.add([backBg, backText])
+    backBtn.setSize(120, 36).setInteractive({ useHandCursor: true })
     
-    backBtn.on('pointerover', () => backBtn.setColor('#ffffff'))
-    backBtn.on('pointerout', () => backBtn.setColor('#aaaaaa'))
+    backBtn.on('pointerover', () => {
+      backBg.setFillStyle(0x3a3a4e)
+      backText.setColor('#ffffff')
+    })
+    backBtn.on('pointerout', () => {
+      backBg.setFillStyle(0x2a2a3e)
+      backText.setColor('#aaaaaa')
+    })
     backBtn.on('pointerdown', () => this.returnToMenu())
+    
+    // Combo 显示
+    this.comboText = this.add.text(width / 2, 75, '', {
+      fontSize: '20px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5).setAlpha(0)
+    
+    // 进度条背景
+    this.progressBg = this.add.rectangle(width / 2, height - 35, 300, 12, 0x2a2a3e)
+    this.progressBg.setStrokeStyle(1, 0x444466)
+    
+    // 进度条
+    this.progressBar = this.add.graphics()
+    this.updateProgressBar()
+    
+    // 进度文字
+    this.add.text(width / 2, height - 55, '剩余配对', {
+      fontSize: '12px',
+      color: '#888888',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5)
+    
+    // 提示按钮
+    this.createHintButton(width - 80, height - 35)
+  }
+  
+  /**
+   * 创建提示按钮
+   */
+  private createHintButton(x: number, y: number): void {
+    this.hintButton = this.add.container(x, y)
+    
+    const bg = this.add.rectangle(0, 0, 100, 36, 0x4a4a6e, 0.9)
+    bg.setStrokeStyle(1, 0x6a6a8e)
+    
+    const icon = this.add.text(-25, 0, '💡', { fontSize: '16px' }).setOrigin(0.5)
+    const text = this.add.text(10, 0, '提示', {
+      fontSize: '14px',
+      color: '#cccccc',
+      fontFamily: 'Noto Sans SC, sans-serif'
+    }).setOrigin(0.5)
+    
+    this.hintButton.add([bg, icon, text])
+    this.hintButton.setSize(100, 36).setInteractive({ useHandCursor: true })
+    
+    this.hintButton.on('pointerover', () => {
+      bg.setFillStyle(0x5a5a7e)
+      this.tweens.add({ targets: this.hintButton, scale: 1.05, duration: 100 })
+    })
+    this.hintButton.on('pointerout', () => {
+      bg.setFillStyle(0x4a4a6e)
+      this.tweens.add({ targets: this.hintButton, scale: 1, duration: 100 })
+    })
+    this.hintButton.on('pointerdown', () => {
+      this.highlightHintPair()
+      this.showToast('💡 已显示提示', 'info')
+    })
+  }
+  
+  /**
+   * 绘制棋盘背景装饰
+   */
+  private drawBoardBackground(): void {
+    const { rows, cols } = this.config.boardSize
+    const boardWidth = cols * (CARD_WIDTH + CARD_PADDING) + 40
+    const boardHeight = rows * (CARD_HEIGHT + CARD_PADDING) + 40
+    
+    const graphics = this.add.graphics()
+    
+    // 棋盘外框发光效果
+    graphics.fillStyle(0x1a2a4a, 0.5)
+    graphics.fillRoundedRect(
+      this.boardOffsetX - 25,
+      this.boardOffsetY - 25,
+      boardWidth,
+      boardHeight,
+      15
+    )
+    
+    // 内框
+    graphics.lineStyle(2, 0x3a5a8a, 0.6)
+    graphics.strokeRoundedRect(
+      this.boardOffsetX - 20,
+      this.boardOffsetY - 20,
+      boardWidth - 10,
+      boardHeight - 10,
+      12
+    )
+    
+    // 角落装饰
+    const corners = [
+      { x: this.boardOffsetX - 15, y: this.boardOffsetY - 15 },
+      { x: this.boardOffsetX + boardWidth - 35, y: this.boardOffsetY - 15 },
+      { x: this.boardOffsetX - 15, y: this.boardOffsetY + boardHeight - 35 },
+      { x: this.boardOffsetX + boardWidth - 35, y: this.boardOffsetY + boardHeight - 35 }
+    ]
+    
+    corners.forEach(corner => {
+      graphics.fillStyle(0x4a90d9, 0.3)
+      graphics.fillCircle(corner.x, corner.y, 8)
+    })
+  }
+  
+  /**
+   * 创建粒子系统
+   */
+  private createParticleSystem(): void {
+    // 创建一个简单的粒子纹理
+    const particleGraphics = this.add.graphics()
+    particleGraphics.fillStyle(0xffffff)
+    particleGraphics.fillCircle(4, 4, 4)
+    particleGraphics.generateTexture('particle', 8, 8)
+    particleGraphics.destroy()
+    
+    this.particles = this.add.particles(0, 0, 'particle', {
+      speed: { min: 100, max: 200 },
+      scale: { start: 1, end: 0 },
+      alpha: { start: 1, end: 0 },
+      lifespan: 800,
+      gravityY: 200,
+      emitting: false
+    })
+    this.particles.setDepth(100)
+  }
+  
+  /**
+   * 播放庆祝粒子效果
+   */
+  private playCelebrationParticles(x: number, y: number): void {
+    // 多彩粒子爆发
+    const colors = [0xffd700, 0x50c878, 0x4a90d9, 0xff6b9d]
+    
+    colors.forEach((color, index) => {
+      this.time.delayedCall(index * 50, () => {
+        this.particles.setParticleTint(color)
+        this.particles.emitParticleAt(x, y, 8)
+      })
+    })
+  }
+  
+  /**
+   * 更新进度条
+   */
+  private updateProgressBar(): void {
+    const width = this.cameras.main.width
+    const height = this.cameras.main.height
+    const barWidth = 296
+    const progress = this.totalPairs > 0 ? (this.totalPairs - this.remainingPairs) / this.totalPairs : 0
+    
+    this.progressBar.clear()
+    
+    // 渐变进度条
+    const filledWidth = barWidth * progress
+    if (filledWidth > 0) {
+      this.progressBar.fillStyle(0x50c878)
+      this.progressBar.fillRoundedRect(
+        width / 2 - barWidth / 2,
+        height - 41,
+        filledWidth,
+        12,
+        6
+      )
+    }
+  }
+  
+  /**
+   * 显示 Combo 效果
+   */
+  private showComboEffect(): void {
+    if (this.comboCount < 2) return
+    
+    const comboMessages = [
+      '', '', 
+      '🔥 2 连击!', 
+      '⚡ 3 连击!', 
+      '💫 4 连击!', 
+      '🌟 5 连击!',
+      '✨ 超神!'
+    ]
+    
+    const message = this.comboCount >= 6 
+      ? `✨ ${this.comboCount} 连击!` 
+      : comboMessages[this.comboCount] || `🔥 ${this.comboCount} 连击!`
+    
+    this.comboText.setText(message)
+    this.comboText.setAlpha(1)
+    this.comboText.setScale(0.5)
+    
+    // 弹出动画
+    this.tweens.add({
+      targets: this.comboText,
+      scale: 1.2,
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: this.comboText,
+          scale: 1,
+          alpha: 0,
+          duration: 1500,
+          delay: 500
+        })
+      }
+    })
   }
 
   private calculateBoardOffset(): void {
@@ -294,7 +549,8 @@ export class GameScene extends Phaser.Scene {
     const boardHeight = rows * (CARD_HEIGHT + CARD_PADDING) - CARD_PADDING
     
     this.boardOffsetX = (this.cameras.main.width - boardWidth) / 2
-    this.boardOffsetY = (this.cameras.main.height - boardHeight) / 2 + 20
+    // 调整垂直位置，考虑顶部UI栏
+    this.boardOffsetY = (this.cameras.main.height - boardHeight) / 2 + 30
     
     // Set offset in CardManager
     this.cardManager.setBoardOffset(this.boardOffsetX, this.boardOffsetY)
@@ -370,14 +626,24 @@ export class GameScene extends Phaser.Scene {
     // Update stats
     if (result.success) {
       this.correctCount++
+      this.comboCount++
+      if (this.comboCount > this.maxCombo) {
+        this.maxCombo = this.comboCount
+      }
+      this.remainingPairs--
     } else {
       this.wrongCount++
+      this.comboCount = 0 // 重置连击
     }
     this.statsManager.recordMatch(card1.cardData.word, card1.cardData.meaning, result.success)
     this.difficultyManager.recordMatchResult(result.success)
     this.updateScoreDisplay()
+    this.updateProgressBar()
     
     if (result.success && result.path) {
+      // 显示连击效果
+      this.showComboEffect()
+      
       // Successful match - animate path and remove cards
       await this.animateSuccessfulMatch(card1, card2, result.path)
       
@@ -408,6 +674,12 @@ export class GameScene extends Phaser.Scene {
     
     // Flash success effect
     await this.cardManager.playSuccessFlash(card1, card2)
+    
+    // 播放粒子庆祝效果
+    const pos1 = this.cardManager.gridToScreen(card1.position)
+    const pos2 = this.cardManager.gridToScreen(card2.position)
+    this.playCelebrationParticles(pos1.x, pos1.y)
+    this.playCelebrationParticles(pos2.x, pos2.y)
     
     // Wait a bit
     await this.delay(100)
@@ -510,7 +782,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateScoreDisplay(): void {
-    this.scoreText.setText(`正确: ${this.correctCount} | 错误: ${this.wrongCount}`)
+    this.scoreText.setText(`✓ ${this.correctCount}  |  ✗ ${this.wrongCount}`)
   }
 
   private startTimer(): void {
@@ -527,7 +799,7 @@ export class GameScene extends Phaser.Scene {
     const minutes = Math.floor(elapsed / 60)
     const seconds = elapsed % 60
     this.timerText.setText(
-      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      `⏱ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
     )
   }
 
@@ -584,12 +856,13 @@ export class GameScene extends Phaser.Scene {
     )
     overlay.setAlpha(0)
     
-    // Create panel background
-    const panelWidth = 400
-    const panelHeight = 450
+    // Create panel background - 增大面板高度
+    const panelWidth = 500
+    const panelHeight = 600
+    const panelY = height / 2
     const panel = this.add.rectangle(
       width / 2,
-      height / 2,
+      panelY,
       panelWidth,
       panelHeight,
       0x1a1a2e,
@@ -598,12 +871,20 @@ export class GameScene extends Phaser.Scene {
     panel.setStrokeStyle(3, 0x4a90d9)
     panel.setAlpha(0)
     
+    // 计算面板内部布局的基准位置
+    const panelTop = panelY - panelHeight / 2
+    
     // Title
     const titleText = this.add.text(
       width / 2,
-      height / 2 - 190,
+      panelTop + 45,
       '🎉 游戏完成！',
-      { fontSize: '28px', color: '#ffd700', fontStyle: 'bold' }
+      { 
+        fontSize: '32px', 
+        color: '#ffd700', 
+        fontStyle: 'bold',
+        fontFamily: 'Noto Sans SC, sans-serif'
+      }
     ).setOrigin(0.5).setAlpha(0)
     
     // Statistics section (Requirements: 6.2)
@@ -611,20 +892,22 @@ export class GameScene extends Phaser.Scene {
       ? Math.round((this.correctCount / (this.correctCount + this.wrongCount)) * 100) 
       : 0
     
-    const statsY = height / 2 - 120
+    const statsY = panelTop + 110
     const statsContainer = this.add.container(width / 2, statsY)
     
     // Stats header
     const statsHeader = this.add.text(0, 0, '📊 游戏统计', {
       fontSize: '18px',
       color: '#4a90d9',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      fontFamily: 'Noto Sans SC, sans-serif'
     }).setOrigin(0.5)
     
     // Stats grid
     const statsGrid = [
       { label: '✓ 正确匹配', value: `${this.correctCount}`, color: '#50c878' },
       { label: '✗ 错误尝试', value: `${this.wrongCount}`, color: '#ff6b6b' },
+      { label: '🔥 最大连击', value: `${this.maxCombo}`, color: '#ff9500' },
       { label: '⏱ 用时', value: this.formatTime(duration), color: '#ffffff' },
       { label: '📈 正确率', value: `${accuracy}%`, color: '#ffd700' }
     ]
@@ -632,15 +915,17 @@ export class GameScene extends Phaser.Scene {
     const gridStartY = 35
     statsGrid.forEach((stat, index) => {
       const y = gridStartY + index * 28
-      const labelText = this.add.text(-80, y, stat.label, {
-        fontSize: '14px',
-        color: '#aaaaaa'
+      const labelText = this.add.text(-100, y, stat.label, {
+        fontSize: '15px',
+        color: '#aaaaaa',
+        fontFamily: 'Noto Sans SC, sans-serif'
       }).setOrigin(0, 0.5)
       
-      const valueText = this.add.text(80, y, stat.value, {
-        fontSize: '14px',
+      const valueText = this.add.text(100, y, stat.value, {
+        fontSize: '15px',
         color: stat.color,
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontFamily: 'Noto Sans SC, sans-serif'
       }).setOrigin(1, 0.5)
       
       statsContainer.add([labelText, valueText])
@@ -650,32 +935,39 @@ export class GameScene extends Phaser.Scene {
     statsContainer.setAlpha(0)
     
     // AI Summary section (Requirements: 6.3, 6.4)
-    const summaryY = height / 2 + 30
+    const summaryY = panelTop + 310
     const summaryHeader = this.add.text(
       width / 2,
       summaryY,
       '🤖 AI 学习建议',
-      { fontSize: '18px', color: '#4a90d9', fontStyle: 'bold' }
+      { 
+        fontSize: '18px', 
+        color: '#4a90d9', 
+        fontStyle: 'bold',
+        fontFamily: 'Noto Sans SC, sans-serif'
+      }
     ).setOrigin(0.5).setAlpha(0)
     
     // Loading text for AI summary
     const summaryText = this.add.text(
       width / 2,
-      summaryY + 50,
+      summaryY + 35,
       '正在生成学习建议...',
       { 
-        fontSize: '13px', 
+        fontSize: '14px', 
         color: '#cccccc',
-        wordWrap: { width: panelWidth - 60 },
-        align: 'center'
+        fontFamily: 'Noto Sans SC, sans-serif',
+        wordWrap: { width: panelWidth - 80 },
+        align: 'center',
+        lineSpacing: 5
       }
     ).setOrigin(0.5, 0).setAlpha(0)
     
     // Buttons (Requirements: 6.5)
-    const buttonY = height / 2 + 175
+    const buttonY = panelTop + panelHeight - 55
     
     const replayBtn = this.createEndScreenButton(
-      width / 2 - 90,
+      width / 2 - 110,
       buttonY,
       '🔄 再玩一次',
       0x50c878,
@@ -684,7 +976,7 @@ export class GameScene extends Phaser.Scene {
     replayBtn.setAlpha(0)
     
     const menuBtn = this.createEndScreenButton(
-      width / 2 + 90,
+      width / 2 + 110,
       buttonY,
       '🏠 返回菜单',
       0x4a90d9,
@@ -763,17 +1055,24 @@ export class GameScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y)
     
-    const bg = this.add.rectangle(0, 0, 150, 45, color)
-    bg.setStrokeStyle(2, 0xffffff)
+    // 阴影
+    const shadow = this.add.rectangle(3, 3, 180, 50, 0x000000, 0.3)
+    
+    const bg = this.add.rectangle(0, 0, 180, 50, color)
+    bg.setStrokeStyle(2, 0xffffff, 0.5)
+    
+    // 高光
+    const highlight = this.add.rectangle(0, -12, 172, 22, 0xffffff, 0.1)
     
     const label = this.add.text(0, 0, text, {
-      fontSize: '14px',
+      fontSize: '16px',
       color: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      fontFamily: 'Noto Sans SC, sans-serif'
     }).setOrigin(0.5)
     
-    container.add([bg, label])
-    container.setSize(150, 45)
+    container.add([shadow, bg, highlight, label])
+    container.setSize(180, 50)
     container.setInteractive({ useHandCursor: true })
     
     // Hover effects

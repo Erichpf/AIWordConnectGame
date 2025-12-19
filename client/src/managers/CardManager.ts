@@ -9,17 +9,17 @@
 import Phaser from 'phaser'
 import type { WordCard, Position } from 'shared'
 
-// Card visual constants
-export const CARD_WIDTH = 70
-export const CARD_HEIGHT = 50
-export const CARD_PADDING = 8
+// Card visual constants - 增大卡片尺寸以适应更高分辨率
+export const CARD_WIDTH = 120
+export const CARD_HEIGHT = 80
+export const CARD_PADDING = 12
 
 export const CARD_COLORS = {
-  word: 0x4a90d9,      // Blue for word cards
-  meaning: 0x50c878,   // Green for meaning cards
-  selected: 0xffd700,  // Gold for selected
-  hover: 0x6bb3f0,     // Light blue for hover
-  error: 0xff4444      // Red for error
+  word: 0x3d7ab8,      // Blue for word cards
+  meaning: 0x45a868,   // Green for meaning cards
+  selected: 0xf5c842,  // Gold for selected
+  hover: 0x5a9fd4,     // Light blue for hover
+  error: 0xe85454      // Red for error
 }
 
 /**
@@ -74,10 +74,13 @@ export class CardManager {
     // Create container
     const container = this.scene.add.container(screenPos.x, screenPos.y)
     
-    // Background
+    // Background with rounded corners effect (using graphics)
     const bgColor = card.type === 'word' ? CARD_COLORS.word : CARD_COLORS.meaning
     const background = this.scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, bgColor)
-    background.setStrokeStyle(2, 0xffffff, 0.3)
+    background.setStrokeStyle(2, 0xffffff, 0.4)
+    
+    // Add subtle gradient overlay for depth
+    const overlay = this.scene.add.rectangle(0, -CARD_HEIGHT/4, CARD_WIDTH - 4, CARD_HEIGHT/2 - 2, 0xffffff, 0.08)
     
     // Text - show word or meaning based on card type
     const displayText = card.type === 'word' ? card.word : card.meaning
@@ -85,11 +88,23 @@ export class CardManager {
     const text = this.scene.add.text(0, 0, displayText, {
       fontSize: `${fontSize}px`,
       color: '#ffffff',
-      wordWrap: { width: CARD_WIDTH - 8 },
-      align: 'center'
+      fontFamily: 'Noto Sans SC, sans-serif',
+      fontStyle: 'bold',
+      wordWrap: { width: CARD_WIDTH - 16, useAdvancedWrap: true },
+      align: 'center',
+      lineSpacing: 4
     }).setOrigin(0.5)
     
-    container.add([background, text])
+    // Ensure text fits within card
+    if (text.height > CARD_HEIGHT - 16) {
+      const scale = (CARD_HEIGHT - 16) / text.height
+      text.setScale(Math.max(scale, 0.7))
+    }
+    
+    container.add([background, overlay, text])
+    
+    // Add shadow effect
+    container.setData('shadow', this.createCardShadow(container))
     
     // Create CardSprite object
     const cardSprite: CardSprite = {
@@ -118,6 +133,15 @@ export class CardManager {
     this.cardSprites.set(key, cardSprite)
     
     return cardSprite
+  }
+
+  /**
+   * 创建卡片阴影效果
+   */
+  private createCardShadow(container: Phaser.GameObjects.Container): Phaser.GameObjects.Rectangle {
+    const shadow = this.scene.add.rectangle(3, 3, CARD_WIDTH, CARD_HEIGHT, 0x000000, 0.3)
+    container.addAt(shadow, 0)
+    return shadow
   }
 
   /**
@@ -284,13 +308,16 @@ export class CardManager {
   }
 
   /**
-   * 计算字体大小
+   * 计算字体大小 - 根据文本长度动态调整
    */
   private calculateFontSize(text: string): number {
-    if (text.length <= 2) return 14
-    if (text.length <= 4) return 12
-    if (text.length <= 8) return 10
-    return 8
+    const len = text.length
+    if (len <= 2) return 22
+    if (len <= 4) return 18
+    if (len <= 6) return 16
+    if (len <= 10) return 14
+    if (len <= 15) return 12
+    return 11
   }
 
   /**
