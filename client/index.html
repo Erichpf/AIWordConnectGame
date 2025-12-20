@@ -33,8 +33,10 @@
         max-height: 800px;
       }
       #game-container canvas {
-        image-rendering: auto;
-        image-rendering: crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: optimizeQuality;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
     </style>
   </head>

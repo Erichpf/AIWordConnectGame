@@ -5,6 +5,7 @@
 
 import Phaser from 'phaser'
 import { createGameConfig } from '../config/gameConfig'
+import { createHDText, TEXT_STYLES, createTextStyle } from '../config/textStyles'
 import type { Language, Level } from 'shared'
 
 interface MenuOption<T> {
@@ -83,12 +84,11 @@ export class MenuScene extends Phaser.Scene {
     // 开始按钮
     this.createStartBtn(w, centerY + 290)
 
-    // 底部信息
-    this.add.text(w / 2, h - 30, 'Powered by AI · 智能词汇学习', {
-      fontSize: '14px',
-      color: '#666666',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    // 底部信息 - 高清渲染
+    createHDText(this, w / 2, h - 30, 'Powered by AI · 智能词汇学习', createTextStyle({
+      fontSize: 14,
+      color: '#666666'
+    })).setOrigin(0.5)
   }
 
   private createBackground(w: number, h: number): void {
@@ -115,63 +115,78 @@ export class MenuScene extends Phaser.Scene {
   }
   
   /**
-   * 创建浮动粒子效果
+   * 创建浮动粒子效果 - 增加数量和多样性
    */
   private createFloatingParticles(w: number, h: number): void {
-    // 创建多个浮动的装饰元素
-    const symbols = ['📚', '🎯', '💡', '⭐', '🔤', '🀄', '✨', '🎮']
+    // 更多的装饰符号
+    const symbols = ['📚', '🎯', '💡', '⭐', '🔤', '🀄', '✨', '🎮', '📖', '🏆', '💫', '🌟', '📝', '🎓', '💭', '🔮']
     
-    for (let i = 0; i < 12; i++) {
+    // 增加粒子数量到 25 个
+    for (let i = 0; i < 25; i++) {
       const symbol = symbols[i % symbols.length]
-      const x = Phaser.Math.Between(50, w - 50)
-      const y = Phaser.Math.Between(100, h - 100)
+      const x = Phaser.Math.Between(30, w - 30)
+      const y = Phaser.Math.Between(60, h - 60)
+      const size = Phaser.Math.Between(14, 32)
+      const baseAlpha = Phaser.Math.FloatBetween(0.08, 0.2)
       
       const particle = this.add.text(x, y, symbol, {
-        fontSize: `${Phaser.Math.Between(16, 28)}px`
-      }).setAlpha(0.15)
+        fontSize: `${size}px`
+      }).setAlpha(baseAlpha).setDepth(-1)
       
-      // 缓慢浮动动画
+      // 缓慢浮动动画 - 更大范围
       this.tweens.add({
         targets: particle,
-        y: y + Phaser.Math.Between(-30, 30),
-        x: x + Phaser.Math.Between(-20, 20),
-        alpha: { from: 0.1, to: 0.25 },
-        duration: Phaser.Math.Between(3000, 5000),
+        y: y + Phaser.Math.Between(-50, 50),
+        x: x + Phaser.Math.Between(-40, 40),
+        alpha: { from: baseAlpha * 0.5, to: baseAlpha * 1.5 },
+        duration: Phaser.Math.Between(4000, 8000),
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut'
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 2000)
       })
       
-      // 轻微旋转
+      // 轻微旋转和缩放
       this.tweens.add({
         targets: particle,
-        angle: { from: -10, to: 10 },
+        angle: { from: -15, to: 15 },
+        scale: { from: 0.9, to: 1.1 },
+        duration: Phaser.Math.Between(3000, 6000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 1500)
+      })
+    }
+    
+    // 添加一些小光点
+    for (let i = 0; i < 15; i++) {
+      const x = Phaser.Math.Between(50, w - 50)
+      const y = Phaser.Math.Between(80, h - 80)
+      
+      const dot = this.add.circle(x, y, Phaser.Math.Between(2, 4), 0xffffff, 0.15)
+      dot.setDepth(-1)
+      
+      this.tweens.add({
+        targets: dot,
+        alpha: { from: 0.05, to: 0.3 },
+        scale: { from: 0.8, to: 1.3 },
         duration: Phaser.Math.Between(2000, 4000),
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut'
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 2000)
       })
     }
   }
 
   private createTitle(w: number): void {
-    // 主标题
-    const title = this.add.text(w / 2, 80, '智连词境', {
-      fontSize: '52px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
-
-    // 标题发光效果
+    // 主标题 - 使用高清文字
+    const title = createHDText(this, w / 2, 80, '智连词境', TEXT_STYLES.title).setOrigin(0.5)
     title.setShadow(0, 0, '#4a90d9', 20, true, true)
 
     // 副标题
-    this.add.text(w / 2, 135, 'AI Word Connect Game', {
-      fontSize: '20px',
-      color: '#8899aa',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    createHDText(this, w / 2, 135, 'AI Word Connect Game', TEXT_STYLES.subtitle).setOrigin(0.5)
 
     // 分隔线
     const line = this.add.graphics()
@@ -180,11 +195,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createSectionLabel(x: number, y: number, text: string): void {
-    this.add.text(x, y, text, {
-      fontSize: '18px',
-      color: '#aabbcc',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    createHDText(this, x, y, text, TEXT_STYLES.sectionTitle).setOrigin(0.5)
   }
 
   private createButtons<T>(
@@ -214,14 +225,13 @@ export class MenuScene extends Phaser.Scene {
       // 高光
       const highlight = this.add.rectangle(0, -bh/4, bw - 4, bh/2 - 2, 0xffffff, isSel ? 0.1 : 0.05)
 
-      // 图标和文字
+      // 图标和文字 - 高清渲染
       const label = o.icon ? `${o.icon} ${o.label}` : o.label
-      const txt = this.add.text(0, 0, label, {
-        fontSize: '15px',
+      const txt = createHDText(this, 0, 0, label, createTextStyle({
+        fontSize: 15,
         color: isSel ? '#ffffff' : '#aaaaaa',
-        fontFamily: 'Noto Sans SC, sans-serif',
         fontStyle: isSel ? 'bold' : 'normal'
-      }).setOrigin(0.5)
+      })).setOrigin(0.5)
 
       c.add([shadow, bg, highlight, txt])
       c.setSize(bw, bh).setInteractive({ useHandCursor: true })
@@ -300,13 +310,8 @@ export class MenuScene extends Phaser.Scene {
     // 高光
     const highlight = this.add.rectangle(0, -15, 232, 25, 0xffffff, 0.15)
 
-    // 文字
-    const txt = this.add.text(0, 0, '🚀 开始游戏', {
-      fontSize: '22px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    // 文字 - 高清渲染
+    const txt = createHDText(this, 0, 0, '🚀 开始游戏', TEXT_STYLES.buttonLarge).setOrigin(0.5)
 
     c.add([shadow, bg, highlight, txt])
     c.setSize(240, 60).setInteractive({ useHandCursor: true })

@@ -10,21 +10,30 @@ import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
 import { GameScene } from './scenes/GameScene'
 
-// Game configuration - 使用更高分辨率避免模糊
+// 获取设备像素比，用于高清渲染
+const dpr = Math.min(window.devicePixelRatio || 1, 2)
+const baseWidth = 1280
+const baseHeight = 800
+
+// Game configuration - 使用设备像素比提升清晰度
 const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
+  type: Phaser.WEBGL,
   parent: 'game-container',
-  width: 1280,
-  height: 800,
+  width: baseWidth * dpr,
+  height: baseHeight * dpr,
   backgroundColor: '#0f0f1a',
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: baseWidth,
+    height: baseHeight,
+    zoom: 1 / dpr
   },
   render: {
     pixelArt: false,
     antialias: true,
-    roundPixels: true
+    roundPixels: false,
+    transparent: false
   },
   scene: [BootScene, MenuScene, GameScene]
 }

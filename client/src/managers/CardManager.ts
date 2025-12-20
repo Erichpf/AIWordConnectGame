@@ -7,19 +7,47 @@
  */
 
 import Phaser from 'phaser'
-import type { WordCard, Position } from 'shared'
+import type { WordCard, Position, Language } from 'shared'
 
-// Card visual constants - 增大卡片尺寸以适应更高分辨率
+// Card visual constants
 export const CARD_WIDTH = 120
 export const CARD_HEIGHT = 80
 export const CARD_PADDING = 12
 
+// 卡片主题配置
+export interface CardTheme {
+  wordBg: number
+  meaningBg: number
+  wordAccent: number
+  meaningAccent: number
+  wordIcon: string
+  meaningIcon: string
+}
+
+// 中文主题 - 古典风格
+const CHINESE_THEME: CardTheme = {
+  wordBg: 0x8b4513,      // 棕红色（古籍感）
+  meaningBg: 0x2d5a4a,   // 墨绿色
+  wordAccent: 0xd4a574,  // 金边
+  meaningAccent: 0x5a9a7a,
+  wordIcon: '📜',
+  meaningIcon: '🖌️'
+}
+
+// 英文主题 - 现代风格
+const ENGLISH_THEME: CardTheme = {
+  wordBg: 0x3a5ba0,      // 深蓝色
+  meaningBg: 0x6a4c93,   // 紫色
+  wordAccent: 0x5a8bd0,
+  meaningAccent: 0x9a7cc3,
+  wordIcon: '🔤',
+  meaningIcon: '💬'
+}
+
 export const CARD_COLORS = {
-  word: 0x3d7ab8,      // Blue for word cards
-  meaning: 0x45a868,   // Green for meaning cards
-  selected: 0xf5c842,  // Gold for selected
-  hover: 0x5a9fd4,     // Light blue for hover
-  error: 0xe85454      // Red for error
+  selected: 0xf5c842,
+  hover: 0x5a9fd4,
+  error: 0xe85454
 }
 
 /**
@@ -29,40 +57,51 @@ export interface CardSprite {
   container: Phaser.GameObjects.Container
   cardData: WordCard
   position: Position
-  background: Phaser.GameObjects.Rectangle
+  background: Phaser.GameObjects.Graphics
   text: Phaser.GameObjects.Text
   isSelected: boolean
+  theme: CardTheme
+  originalBgColor: number
 }
 
 /**
  * CardManager - 卡片管理器
- * 负责卡片精灵创建、选中/取消选中效果、移除动画
  */
 export class CardManager {
   private scene: Phaser.Scene
   private cardSprites: Map<string, CardSprite> = new Map()
   private boardOffsetX: number = 0
   private boardOffsetY: number = 0
+  private language: Language = 'zh'
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
   }
 
   /**
-   * 设置棋盘偏移量（用于居中显示）
+   * 设置语言模式
+   */
+  setLanguage(language: Language): void {
+    this.language = language
+  }
+
+  /**
+   * 获取当前主题
+   */
+  private getTheme(): CardTheme {
+    return this.language === 'zh' ? CHINESE_THEME : ENGLISH_THEME
+  }
+
+  /**
+   * 设置棋盘偏移量
    */
   setBoardOffset(offsetX: number, offsetY: number): void {
     this.boardOffsetX = offsetX
     this.boardOffsetY = offsetY
   }
 
-
   /**
    * 创建卡片精灵
-   * @param card 词卡数据
-   * @param position 棋盘位置
-   * @param onClick 点击回调
-   * @returns CardSprite 对象
    */
   createCardSprite(
     card: WordCard, 
@@ -70,57 +109,83 @@ export class CardManager {
     onClick?: (cardSprite: CardSprite) => void
   ): CardSprite {
     const screenPos = this.gridToScreen(position)
+    const theme = this.getTheme()
+    const isWord = card.type === 'word'
     
-    // Create container
     const container = this.scene.add.container(screenPos.x, screenPos.y)
     
-    // Background with rounded corners effect (using graphics)
-    const bgColor = card.type === 'word' ? CARD_COLORS.word : CARD_COLORS.meaning
-    const background = this.scene.add.rectangle(0, 0, CARD_WIDTH, CARD_HEIGHT, bgColor)
-    background.setStrokeStyle(2, 0xffffff, 0.4)
+    // 创建阴影
+    const shadow = this.scene.add.graphics()
+    shadow.fillStyle(0x000000, 0.3)
+    shadow.fillRoundedRect(4, 4, CARD_WIDTH, CARD_HEIGHT, 10)
+    container.add(shadow)
     
-    // Add subtle gradient overlay for depth
-    const overlay = this.scene.add.rectangle(0, -CARD_HEIGHT/4, CARD_WIDTH - 4, CARD_HEIGHT/2 - 2, 0xffffff, 0.08)
+    // 创建卡片背景
+    const bgColor = isWord ? theme.wordBg : theme.meaningBg
+    const accentColor = isWord ? theme.wordAccent : theme.meaningAccent
+    const background = this.createCardBackground(bgColor, accentColor, isWord)
+    container.add(background)
     
-    // Text - show word or meaning based on card type
-    const displayText = card.type === 'word' ? card.word : card.meaning
+    // 添加装饰图案
+    const decoration = this.createCardDecoration(isWord, theme)
+    container.add(decoration)
+    
+    // 添加角标图标
+    const icon = this.scene.add.text(
+      -CARD_WIDTH/2 + 12, 
+      -CARD_HEIGHT/2 + 8, 
+      isWord ? theme.wordIcon : theme.meaningIcon,
+      { fontSize: '14px' }
+    )
+    container.add(icon)
+    
+    // 文字内容 - 使用更大基础字号提升清晰度
+    const displayText = isWord ? card.word : card.meaning
     const fontSize = this.calculateFontSize(displayText)
-    const text = this.scene.add.text(0, 0, displayText, {
+    const text = this.scene.add.text(0, 5, displayText, {
       fontSize: `${fontSize}px`,
       color: '#ffffff',
-      fontFamily: 'Noto Sans SC, sans-serif',
-      fontStyle: 'bold',
-      wordWrap: { width: CARD_WIDTH - 16, useAdvancedWrap: true },
+      fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+      fontStyle: '600',
+      wordWrap: { width: CARD_WIDTH - 20, useAdvancedWrap: true },
       align: 'center',
-      lineSpacing: 4
+      lineSpacing: 4,
+      resolution: 2,
+      shadow: {
+        offsetX: 1,
+        offsetY: 1,
+        color: '#000000',
+        blur: 3,
+        fill: true
+      }
     }).setOrigin(0.5)
     
-    // Ensure text fits within card
-    if (text.height > CARD_HEIGHT - 16) {
-      const scale = (CARD_HEIGHT - 16) / text.height
-      text.setScale(Math.max(scale, 0.7))
+    // 确保文字适应卡片
+    if (text.height > CARD_HEIGHT - 24) {
+      const scale = (CARD_HEIGHT - 24) / text.height
+      text.setScale(Math.max(scale, 0.65))
     }
     
-    container.add([background, overlay, text])
+    container.add(text)
     
-    // Add shadow effect
-    container.setData('shadow', this.createCardShadow(container))
+    // 添加光泽效果
+    const shine = this.createShineEffect()
+    container.add(shine)
     
-    // Create CardSprite object
     const cardSprite: CardSprite = {
       container,
       cardData: card,
       position,
       background,
       text,
-      isSelected: false
+      isSelected: false,
+      theme,
+      originalBgColor: bgColor
     }
     
-    // Make interactive
     container.setSize(CARD_WIDTH, CARD_HEIGHT)
     container.setInteractive({ useHandCursor: true })
     
-    // Event handlers
     container.on('pointerover', () => this.onCardHover(cardSprite))
     container.on('pointerout', () => this.onCardOut(cardSprite))
     
@@ -128,7 +193,6 @@ export class CardManager {
       container.on('pointerdown', () => onClick(cardSprite))
     }
     
-    // Store in map
     const key = this.getPositionKey(position)
     this.cardSprites.set(key, cardSprite)
     
@@ -136,28 +200,113 @@ export class CardManager {
   }
 
   /**
-   * 创建卡片阴影效果
+   * 创建卡片背景
    */
-  private createCardShadow(container: Phaser.GameObjects.Container): Phaser.GameObjects.Rectangle {
-    const shadow = this.scene.add.rectangle(3, 3, CARD_WIDTH, CARD_HEIGHT, 0x000000, 0.3)
-    container.addAt(shadow, 0)
-    return shadow
+  private createCardBackground(bgColor: number, accentColor: number, _isWord: boolean): Phaser.GameObjects.Graphics {
+    const graphics = this.scene.add.graphics()
+    
+    // 主背景 - 圆角矩形
+    graphics.fillStyle(bgColor)
+    graphics.fillRoundedRect(-CARD_WIDTH/2, -CARD_HEIGHT/2, CARD_WIDTH, CARD_HEIGHT, 10)
+    
+    // 边框
+    graphics.lineStyle(2, accentColor, 0.8)
+    graphics.strokeRoundedRect(-CARD_WIDTH/2, -CARD_HEIGHT/2, CARD_WIDTH, CARD_HEIGHT, 10)
+    
+    // 顶部高光条
+    graphics.fillStyle(0xffffff, 0.15)
+    graphics.fillRoundedRect(-CARD_WIDTH/2 + 4, -CARD_HEIGHT/2 + 4, CARD_WIDTH - 8, 20, { tl: 8, tr: 8, bl: 0, br: 0 })
+    
+    // 底部装饰条
+    graphics.fillStyle(accentColor, 0.3)
+    graphics.fillRoundedRect(-CARD_WIDTH/2 + 4, CARD_HEIGHT/2 - 12, CARD_WIDTH - 8, 8, { tl: 0, tr: 0, bl: 8, br: 8 })
+    
+    return graphics
+  }
+
+  /**
+   * 创建卡片装饰图案
+   */
+  private createCardDecoration(isWord: boolean, theme: CardTheme): Phaser.GameObjects.Graphics {
+    const graphics = this.scene.add.graphics()
+    
+    if (this.language === 'zh') {
+      // 中文卡片 - 古典纹样
+      graphics.lineStyle(1, 0xffffff, 0.1)
+      
+      if (isWord) {
+        // 词语卡 - 书卷纹
+        for (let i = 0; i < 3; i++) {
+          const y = -CARD_HEIGHT/2 + 25 + i * 8
+          graphics.lineBetween(-CARD_WIDTH/2 + 30, y, CARD_WIDTH/2 - 10, y)
+        }
+        // 角落装饰
+        graphics.lineStyle(1.5, theme.wordAccent, 0.3)
+        graphics.lineBetween(CARD_WIDTH/2 - 20, -CARD_HEIGHT/2 + 8, CARD_WIDTH/2 - 8, -CARD_HEIGHT/2 + 8)
+        graphics.lineBetween(CARD_WIDTH/2 - 8, -CARD_HEIGHT/2 + 8, CARD_WIDTH/2 - 8, -CARD_HEIGHT/2 + 20)
+      } else {
+        // 释义卡 - 竹简纹
+        graphics.lineStyle(1, 0xffffff, 0.08)
+        for (let i = 0; i < 5; i++) {
+          const x = -CARD_WIDTH/2 + 15 + i * 25
+          graphics.lineBetween(x, -CARD_HEIGHT/2 + 25, x, CARD_HEIGHT/2 - 15)
+        }
+      }
+    } else {
+      // 英文卡片 - 现代几何
+      graphics.lineStyle(1, 0xffffff, 0.1)
+      
+      if (isWord) {
+        // 词语卡 - 圆点装饰
+        graphics.fillStyle(0xffffff, 0.1)
+        graphics.fillCircle(CARD_WIDTH/2 - 15, CARD_HEIGHT/2 - 15, 4)
+        graphics.fillCircle(CARD_WIDTH/2 - 28, CARD_HEIGHT/2 - 15, 3)
+        graphics.fillCircle(CARD_WIDTH/2 - 15, CARD_HEIGHT/2 - 28, 3)
+      } else {
+        // 释义卡 - 对话框装饰
+        graphics.lineStyle(1.5, theme.meaningAccent, 0.2)
+        graphics.beginPath()
+        graphics.moveTo(-CARD_WIDTH/2 + 10, CARD_HEIGHT/2 - 20)
+        graphics.lineTo(-CARD_WIDTH/2 + 10, CARD_HEIGHT/2 - 10)
+        graphics.lineTo(-CARD_WIDTH/2 + 20, CARD_HEIGHT/2 - 10)
+        graphics.strokePath()
+      }
+    }
+    
+    return graphics
+  }
+
+  /**
+   * 创建光泽效果
+   */
+  private createShineEffect(): Phaser.GameObjects.Graphics {
+    const graphics = this.scene.add.graphics()
+    
+    // 左上角光泽
+    graphics.fillStyle(0xffffff, 0.05)
+    graphics.fillTriangle(
+      -CARD_WIDTH/2, -CARD_HEIGHT/2 + 10,
+      -CARD_WIDTH/2 + 30, -CARD_HEIGHT/2,
+      -CARD_WIDTH/2, -CARD_HEIGHT/2
+    )
+    
+    return graphics
   }
 
   /**
    * 播放卡片入场动画
-   * @param cardSprite 卡片精灵
-   * @param delay 延迟时间（毫秒）
    */
   playEntryAnimation(cardSprite: CardSprite, delay: number = 0): void {
     cardSprite.container.setScale(0)
     cardSprite.container.setAlpha(0)
+    cardSprite.container.setAngle(-10)
     
     this.scene.tweens.add({
       targets: cardSprite.container,
       scale: 1,
       alpha: 1,
-      duration: 300,
+      angle: 0,
+      duration: 400,
       delay,
       ease: 'Back.easeOut'
     })
@@ -165,63 +314,112 @@ export class CardManager {
 
   /**
    * 选中卡片
-   * @param card 卡片精灵
    */
   selectCard(card: CardSprite): void {
     card.isSelected = true
-    card.background.setFillStyle(CARD_COLORS.selected)
-    card.background.setStrokeStyle(3, 0xffffff, 1)
+    
+    // 重绘背景为选中色
+    this.redrawCardBackground(card, CARD_COLORS.selected, 0xffffff)
     
     this.scene.tweens.add({
       targets: card.container,
-      scale: 1.1,
+      scale: 1.12,
       duration: 150,
       ease: 'Back.easeOut'
     })
+    
+    // 添加发光效果
+    this.addGlowEffect(card)
   }
 
   /**
    * 取消选中卡片
-   * @param card 卡片精灵
    */
   deselectCard(card: CardSprite): void {
     card.isSelected = false
-    const bgColor = card.cardData.type === 'word' ? CARD_COLORS.word : CARD_COLORS.meaning
-    card.background.setFillStyle(bgColor)
-    card.background.setStrokeStyle(2, 0xffffff, 0.3)
+    
+    const accentColor = card.cardData.type === 'word' ? card.theme.wordAccent : card.theme.meaningAccent
+    this.redrawCardBackground(card, card.originalBgColor, accentColor)
     
     this.scene.tweens.add({
       targets: card.container,
       scale: 1,
       duration: 150
     })
+    
+    this.removeGlowEffect(card)
   }
 
+  /**
+   * 重绘卡片背景
+   */
+  private redrawCardBackground(card: CardSprite, bgColor: number, accentColor: number): void {
+    card.background.clear()
+    
+    card.background.fillStyle(bgColor)
+    card.background.fillRoundedRect(-CARD_WIDTH/2, -CARD_HEIGHT/2, CARD_WIDTH, CARD_HEIGHT, 10)
+    
+    card.background.lineStyle(3, accentColor, 1)
+    card.background.strokeRoundedRect(-CARD_WIDTH/2, -CARD_HEIGHT/2, CARD_WIDTH, CARD_HEIGHT, 10)
+    
+    card.background.fillStyle(0xffffff, 0.2)
+    card.background.fillRoundedRect(-CARD_WIDTH/2 + 4, -CARD_HEIGHT/2 + 4, CARD_WIDTH - 8, 20, { tl: 8, tr: 8, bl: 0, br: 0 })
+  }
+
+  /**
+   * 添加发光效果
+   */
+  private addGlowEffect(card: CardSprite): void {
+    const glow = this.scene.add.graphics()
+    glow.fillStyle(CARD_COLORS.selected, 0.3)
+    glow.fillRoundedRect(-CARD_WIDTH/2 - 5, -CARD_HEIGHT/2 - 5, CARD_WIDTH + 10, CARD_HEIGHT + 10, 12)
+    card.container.addAt(glow, 0)
+    card.container.setData('glow', glow)
+    
+    // 发光动画
+    this.scene.tweens.add({
+      targets: glow,
+      alpha: 0.5,
+      duration: 500,
+      yoyo: true,
+      repeat: -1
+    })
+  }
+
+  /**
+   * 移除发光效果
+   */
+  private removeGlowEffect(card: CardSprite): void {
+    const glow = card.container.getData('glow') as Phaser.GameObjects.Graphics
+    if (glow) {
+      this.scene.tweens.killTweensOf(glow)
+      glow.destroy()
+      card.container.setData('glow', null)
+    }
+  }
 
   /**
    * 移除卡片动画
-   * @param card1 第一张卡片
-   * @param card2 第二张卡片
-   * @returns Promise，动画完成后 resolve
    */
   async removeCardsWithAnimation(card1: CardSprite, card2: CardSprite): Promise<void> {
+    // 移除发光效果
+    this.removeGlowEffect(card1)
+    this.removeGlowEffect(card2)
+    
     return new Promise(resolve => {
-      // Scale down and fade out
+      // 旋转消失效果
       this.scene.tweens.add({
         targets: [card1.container, card2.container],
         scale: 0,
         alpha: 0,
-        duration: 300,
+        angle: 180,
+        duration: 400,
         ease: 'Back.easeIn',
         onComplete: () => {
-          // Remove from map
           this.cardSprites.delete(this.getPositionKey(card1.position))
           this.cardSprites.delete(this.getPositionKey(card2.position))
-          
-          // Destroy sprites
           card1.container.destroy()
           card2.container.destroy()
-          
           resolve()
         }
       })
@@ -230,15 +428,16 @@ export class CardManager {
 
   /**
    * 播放成功闪烁效果
-   * @param card1 第一张卡片
-   * @param card2 第二张卡片
-   * @returns Promise，动画完成后 resolve
    */
   async playSuccessFlash(card1: CardSprite, card2: CardSprite): Promise<void> {
     return new Promise(resolve => {
+      // 绿色闪烁
+      this.redrawCardBackground(card1, 0x50c878, 0xffffff)
+      this.redrawCardBackground(card2, 0x50c878, 0xffffff)
+      
       this.scene.tweens.add({
         targets: [card1.container, card2.container],
-        alpha: 0.5,
+        alpha: 0.6,
         yoyo: true,
         duration: 100,
         repeat: 2,
@@ -249,24 +448,20 @@ export class CardManager {
 
   /**
    * 播放错误抖动效果
-   * @param card1 第一张卡片
-   * @param card2 第二张卡片
-   * @returns Promise，动画完成后 resolve
    */
   async playErrorShake(card1: CardSprite, card2: CardSprite): Promise<void> {
-    // Flash red
-    card1.background.setFillStyle(CARD_COLORS.error)
-    card2.background.setFillStyle(CARD_COLORS.error)
+    this.redrawCardBackground(card1, CARD_COLORS.error, 0xffffff)
+    this.redrawCardBackground(card2, CARD_COLORS.error, 0xffffff)
     
     const shakeCard = (card: CardSprite): Promise<void> => {
       return new Promise(resolve => {
         const originalX = card.container.x
         this.scene.tweens.add({
           targets: card.container,
-          x: originalX - 5,
+          x: originalX - 8,
           duration: 50,
           yoyo: true,
-          repeat: 3,
+          repeat: 4,
           onComplete: () => {
             card.container.x = originalX
             resolve()
@@ -284,10 +479,11 @@ export class CardManager {
   private onCardHover(card: CardSprite): void {
     if (card.isSelected) return
     
-    card.background.setFillStyle(CARD_COLORS.hover)
+    this.redrawCardBackground(card, CARD_COLORS.hover, 0xffffff)
+    
     this.scene.tweens.add({
       targets: card.container,
-      scale: 1.05,
+      scale: 1.08,
       duration: 100
     })
   }
@@ -298,8 +494,9 @@ export class CardManager {
   private onCardOut(card: CardSprite): void {
     if (card.isSelected) return
     
-    const bgColor = card.cardData.type === 'word' ? CARD_COLORS.word : CARD_COLORS.meaning
-    card.background.setFillStyle(bgColor)
+    const accentColor = card.cardData.type === 'word' ? card.theme.wordAccent : card.theme.meaningAccent
+    this.redrawCardBackground(card, card.originalBgColor, accentColor)
+    
     this.scene.tweens.add({
       targets: card.container,
       scale: 1,
@@ -308,16 +505,16 @@ export class CardManager {
   }
 
   /**
-   * 计算字体大小 - 根据文本长度动态调整
+   * 计算字体大小
    */
   private calculateFontSize(text: string): number {
     const len = text.length
-    if (len <= 2) return 22
-    if (len <= 4) return 18
-    if (len <= 6) return 16
-    if (len <= 10) return 14
-    if (len <= 15) return 12
-    return 11
+    if (len <= 2) return 20
+    if (len <= 4) return 17
+    if (len <= 6) return 15
+    if (len <= 10) return 13
+    if (len <= 15) return 11
+    return 10
   }
 
   /**
@@ -330,30 +527,18 @@ export class CardManager {
     }
   }
 
-  /**
-   * 获取位置键
-   */
   private getPositionKey(position: Position): string {
     return `${position.row},${position.col}`
   }
 
-  /**
-   * 根据位置获取卡片精灵
-   */
   getCardSpriteAt(position: Position): CardSprite | undefined {
     return this.cardSprites.get(this.getPositionKey(position))
   }
 
-  /**
-   * 获取所有卡片精灵
-   */
   getAllCardSprites(): CardSprite[] {
     return Array.from(this.cardSprites.values())
   }
 
-  /**
-   * 清除所有卡片精灵
-   */
   clearAll(): void {
     for (const cardSprite of this.cardSprites.values()) {
       cardSprite.container.destroy()
@@ -361,9 +546,6 @@ export class CardManager {
     this.cardSprites.clear()
   }
 
-  /**
-   * 获取卡片数量
-   */
   getCardCount(): number {
     return this.cardSprites.size
   }

@@ -41,7 +41,7 @@ npm install
 
 ### 启动开发服务器
 
-启动后端服务（默认端口 3000）：
+启动后端服务（默认端口 3001）：
 
 ```bash
 npm run dev:server
@@ -53,7 +53,7 @@ npm run dev:server
 npm run dev:client
 ```
 
-然后访问 http://localhost:5173 开始游戏。
+然后访问 http://localhost:3000 开始游戏。
 
 ### 构建生产版本
 

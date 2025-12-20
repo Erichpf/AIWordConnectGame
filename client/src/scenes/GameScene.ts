@@ -26,6 +26,7 @@ import { CardManager, CARD_WIDTH, CARD_HEIGHT, CARD_PADDING } from '../managers/
 import type { CardSprite } from '../managers/CardManager'
 import { apiService } from '../services/ApiService'
 import { getPairCount } from '../config/gameConfig'
+import { createHDText, TEXT_STYLES, createTextStyle } from '../config/textStyles'
 
 export class GameScene extends Phaser.Scene {
   private config!: GameConfig
@@ -80,6 +81,9 @@ export class GameScene extends Phaser.Scene {
     this.matchManager = new MatchManager(this.pathFinder)
     this.statsManager = new GameStatsManager()
     this.cardManager = new CardManager(this)
+    
+    // 设置卡片语言主题
+    this.cardManager.setLanguage(this.config.language)
     
     // Initialize DifficultyManager with callbacks (Requirements: 7.1, 7.2, 7.3)
     this.difficultyManager = new DifficultyManager({
@@ -205,11 +209,8 @@ export class GameScene extends Phaser.Scene {
       })
     })
     
-    // Loading text
-    const text = this.add.text(0, 25, '正在加载词库...', {
-      fontSize: '14px',
-      color: '#ffffff'
-    }).setOrigin(0.5)
+    // Loading text - 高清
+    const text = createHDText(this, 0, 25, '正在加载词库...', TEXT_STYLES.small).setOrigin(0.5)
     
     container.add([overlay, box, text])
     container.setDepth(100)
@@ -231,27 +232,22 @@ export class GameScene extends Phaser.Scene {
     const box = this.add.rectangle(0, 0, 280, 150, 0x2d1a1a, 0.95)
     box.setStrokeStyle(2, 0xff6b6b)
     
-    // Error icon
-    const icon = this.add.text(0, -45, '⚠️', {
-      fontSize: '32px'
-    }).setOrigin(0.5)
+    // Error icon - 高清
+    const icon = createHDText(this, 0, -45, '⚠️', createTextStyle({ fontSize: 32 })).setOrigin(0.5)
     
-    // Error message
-    const text = this.add.text(0, 0, message, {
-      fontSize: '14px',
+    // Error message - 高清
+    const text = createHDText(this, 0, 0, message, createTextStyle({
+      fontSize: 14,
       color: '#ff6b6b',
-      wordWrap: { width: 240 },
+      wordWrapWidth: 240,
       align: 'center'
-    }).setOrigin(0.5)
+    })).setOrigin(0.5)
     
     // Retry button
     const retryBtn = this.add.container(0, 50)
     const btnBg = this.add.rectangle(0, 0, 100, 35, 0x4a90d9)
     btnBg.setStrokeStyle(1, 0xffffff)
-    const btnText = this.add.text(0, 0, '重试', {
-      fontSize: '14px',
-      color: '#ffffff'
-    }).setOrigin(0.5)
+    const btnText = createHDText(this, 0, 0, '重试', TEXT_STYLES.small).setOrigin(0.5)
     
     retryBtn.add([btnBg, btnText])
     retryBtn.setSize(100, 35)
@@ -284,45 +280,31 @@ export class GameScene extends Phaser.Scene {
     const topBar = this.add.rectangle(width / 2, 30, width, 60, 0x1a1a2e, 0.9)
     topBar.setStrokeStyle(1, 0x333355)
     
-    // Title
-    this.add.text(width / 2, 30, '智连词境', {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    // Title - 高清文字
+    createHDText(this, width / 2, 30, '智连词境', createTextStyle({
+      fontSize: 28,
+      fontStyle: 'bold'
+    })).setOrigin(0.5)
     
     // Score display with icons
     const scoreContainer = this.add.container(140, 30)
     const scoreBg = this.add.rectangle(0, 0, 200, 40, 0x2a2a3e, 0.8)
     scoreBg.setStrokeStyle(1, 0x444466)
-    this.scoreText = this.add.text(0, 0, '✓ 0  |  ✗ 0', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    this.scoreText = createHDText(this, 0, 0, '✓ 0  |  ✗ 0', TEXT_STYLES.gameUI).setOrigin(0.5)
     scoreContainer.add([scoreBg, this.scoreText])
     
     // Timer display with icon
     const timerContainer = this.add.container(width - 100, 30)
     const timerBg = this.add.rectangle(0, 0, 120, 40, 0x2a2a3e, 0.8)
     timerBg.setStrokeStyle(1, 0x444466)
-    this.timerText = this.add.text(0, 0, '⏱ 00:00', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    this.timerText = createHDText(this, 0, 0, '⏱ 00:00', TEXT_STYLES.gameUI).setOrigin(0.5)
     timerContainer.add([timerBg, this.timerText])
     
-    // Back button - 更美观的样式
+    // Back button
     const backBtn = this.add.container(70, height - 35)
     const backBg = this.add.rectangle(0, 0, 120, 36, 0x2a2a3e, 0.8)
     backBg.setStrokeStyle(1, 0x444466)
-    const backText = this.add.text(0, 0, '← 返回菜单', {
-      fontSize: '14px',
-      color: '#aaaaaa',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    const backText = createHDText(this, 0, 0, '← 返回菜单', TEXT_STYLES.small).setOrigin(0.5)
     backBtn.add([backBg, backText])
     backBtn.setSize(120, 36).setInteractive({ useHandCursor: true })
     
@@ -336,13 +318,8 @@ export class GameScene extends Phaser.Scene {
     })
     backBtn.on('pointerdown', () => this.returnToMenu())
     
-    // Combo 显示
-    this.comboText = this.add.text(width / 2, 75, '', {
-      fontSize: '20px',
-      color: '#ffd700',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5).setAlpha(0)
+    // Combo 显示 - 高清
+    this.comboText = createHDText(this, width / 2, 75, '', TEXT_STYLES.combo).setOrigin(0.5).setAlpha(0)
     
     // 进度条背景
     this.progressBg = this.add.rectangle(width / 2, height - 35, 300, 12, 0x2a2a3e)
@@ -352,15 +329,75 @@ export class GameScene extends Phaser.Scene {
     this.progressBar = this.add.graphics()
     this.updateProgressBar()
     
-    // 进度文字
-    this.add.text(width / 2, height - 55, '剩余配对', {
-      fontSize: '12px',
-      color: '#888888',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    // 进度文字 - 高清渲染
+    createHDText(this, width / 2, height - 55, '剩余配对', TEXT_STYLES.hint).setOrigin(0.5)
     
     // 提示按钮
     this.createHintButton(width - 80, height - 35)
+    
+    // 添加浮动粒子背景
+    this.createFloatingParticles(width, height)
+  }
+  
+  /**
+   * 创建浮动粒子效果
+   */
+  private createFloatingParticles(w: number, h: number): void {
+    const symbols = ['📚', '💡', '⭐', '✨', '💫', '🌟', '📖', '🎯']
+    
+    // 游戏场景粒子数量适中，避免干扰
+    for (let i = 0; i < 15; i++) {
+      const symbol = symbols[i % symbols.length]
+      const x = Phaser.Math.Between(30, w - 30)
+      const y = Phaser.Math.Between(70, h - 70)
+      const size = Phaser.Math.Between(12, 24)
+      const baseAlpha = Phaser.Math.FloatBetween(0.05, 0.12)
+      
+      const particle = this.add.text(x, y, symbol, {
+        fontSize: `${size}px`
+      }).setAlpha(baseAlpha).setDepth(-10)
+      
+      this.tweens.add({
+        targets: particle,
+        y: y + Phaser.Math.Between(-40, 40),
+        x: x + Phaser.Math.Between(-30, 30),
+        alpha: { from: baseAlpha * 0.5, to: baseAlpha * 1.3 },
+        duration: Phaser.Math.Between(5000, 9000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 3000)
+      })
+      
+      this.tweens.add({
+        targets: particle,
+        angle: { from: -12, to: 12 },
+        duration: Phaser.Math.Between(4000, 7000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      })
+    }
+    
+    // 小光点
+    for (let i = 0; i < 10; i++) {
+      const x = Phaser.Math.Between(50, w - 50)
+      const y = Phaser.Math.Between(80, h - 80)
+      
+      const dot = this.add.circle(x, y, Phaser.Math.Between(1, 3), 0xffffff, 0.1)
+      dot.setDepth(-10)
+      
+      this.tweens.add({
+        targets: dot,
+        alpha: { from: 0.03, to: 0.15 },
+        scale: { from: 0.7, to: 1.2 },
+        duration: Phaser.Math.Between(3000, 5000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 2000)
+      })
+    }
   }
   
   /**
@@ -372,12 +409,11 @@ export class GameScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, 100, 36, 0x4a4a6e, 0.9)
     bg.setStrokeStyle(1, 0x6a6a8e)
     
-    const icon = this.add.text(-25, 0, '💡', { fontSize: '16px' }).setOrigin(0.5)
-    const text = this.add.text(10, 0, '提示', {
-      fontSize: '14px',
-      color: '#cccccc',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    const icon = createHDText(this, -25, 0, '💡', createTextStyle({ fontSize: 16 })).setOrigin(0.5)
+    const text = createHDText(this, 10, 0, '提示', createTextStyle({
+      fontSize: 14,
+      color: '#cccccc'
+    })).setOrigin(0.5)
     
     this.hintButton.add([bg, icon, text])
     this.hintButton.setSize(100, 36).setInteractive({ useHandCursor: true })
@@ -752,11 +788,12 @@ export class GameScene extends Phaser.Scene {
       ? '无法连接' 
       : '不匹配'
     
-    const errorText = this.add.text(
+    // 高清错误提示
+    const errorText = createHDText(this, 
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
       message,
-      { fontSize: '20px', color: '#ff4444', fontStyle: 'bold' }
+      TEXT_STYLES.error
     ).setOrigin(0.5)
     
     await this.delay(300)
@@ -874,18 +911,12 @@ export class GameScene extends Phaser.Scene {
     // 计算面板内部布局的基准位置
     const panelTop = panelY - panelHeight / 2
     
-    // Title
-    const titleText = this.add.text(
-      width / 2,
-      panelTop + 45,
-      '🎉 游戏完成！',
-      { 
-        fontSize: '32px', 
-        color: '#ffd700', 
-        fontStyle: 'bold',
-        fontFamily: 'Noto Sans SC, sans-serif'
-      }
-    ).setOrigin(0.5).setAlpha(0)
+    // Title - 高清
+    const titleText = createHDText(this, width / 2, panelTop + 45, '🎉 游戏完成！', createTextStyle({
+      fontSize: 32,
+      color: '#ffd700',
+      fontStyle: 'bold'
+    })).setOrigin(0.5).setAlpha(0)
     
     // Statistics section (Requirements: 6.2)
     const accuracy = this.correctCount + this.wrongCount > 0 
@@ -895,13 +926,12 @@ export class GameScene extends Phaser.Scene {
     const statsY = panelTop + 110
     const statsContainer = this.add.container(width / 2, statsY)
     
-    // Stats header
-    const statsHeader = this.add.text(0, 0, '📊 游戏统计', {
-      fontSize: '18px',
+    // Stats header - 高清
+    const statsHeader = createHDText(this, 0, 0, '📊 游戏统计', createTextStyle({
+      fontSize: 18,
       color: '#4a90d9',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+      fontStyle: 'bold'
+    })).setOrigin(0.5)
     
     // Stats grid
     const statsGrid = [
@@ -915,18 +945,16 @@ export class GameScene extends Phaser.Scene {
     const gridStartY = 35
     statsGrid.forEach((stat, index) => {
       const y = gridStartY + index * 28
-      const labelText = this.add.text(-100, y, stat.label, {
-        fontSize: '15px',
-        color: '#aaaaaa',
-        fontFamily: 'Noto Sans SC, sans-serif'
-      }).setOrigin(0, 0.5)
+      const labelText = createHDText(this, -100, y, stat.label, createTextStyle({
+        fontSize: 15,
+        color: '#aaaaaa'
+      })).setOrigin(0, 0.5)
       
-      const valueText = this.add.text(100, y, stat.value, {
-        fontSize: '15px',
+      const valueText = createHDText(this, 100, y, stat.value, createTextStyle({
+        fontSize: 15,
         color: stat.color,
-        fontStyle: 'bold',
-        fontFamily: 'Noto Sans SC, sans-serif'
-      }).setOrigin(1, 0.5)
+        fontStyle: 'bold'
+      })).setOrigin(1, 0.5)
       
       statsContainer.add([labelText, valueText])
     })
@@ -936,32 +964,19 @@ export class GameScene extends Phaser.Scene {
     
     // AI Summary section (Requirements: 6.3, 6.4)
     const summaryY = panelTop + 310
-    const summaryHeader = this.add.text(
-      width / 2,
-      summaryY,
-      '🤖 AI 学习建议',
-      { 
-        fontSize: '18px', 
-        color: '#4a90d9', 
-        fontStyle: 'bold',
-        fontFamily: 'Noto Sans SC, sans-serif'
-      }
-    ).setOrigin(0.5).setAlpha(0)
+    const summaryHeader = createHDText(this, width / 2, summaryY, '🤖 AI 学习建议', createTextStyle({
+      fontSize: 18,
+      color: '#4a90d9',
+      fontStyle: 'bold'
+    })).setOrigin(0.5).setAlpha(0)
     
-    // Loading text for AI summary
-    const summaryText = this.add.text(
-      width / 2,
-      summaryY + 35,
-      '正在生成学习建议...',
-      { 
-        fontSize: '14px', 
-        color: '#cccccc',
-        fontFamily: 'Noto Sans SC, sans-serif',
-        wordWrap: { width: panelWidth - 80 },
-        align: 'center',
-        lineSpacing: 5
-      }
-    ).setOrigin(0.5, 0).setAlpha(0)
+    // Loading text for AI summary - 高清
+    const summaryText = createHDText(this, width / 2, summaryY + 35, '正在生成学习建议...', createTextStyle({
+      fontSize: 14,
+      color: '#cccccc',
+      wordWrapWidth: panelWidth - 80,
+      align: 'center'
+    })).setOrigin(0.5, 0).setAlpha(0)
     
     // Buttons (Requirements: 6.5)
     const buttonY = panelTop + panelHeight - 55
@@ -1064,12 +1079,11 @@ export class GameScene extends Phaser.Scene {
     // 高光
     const highlight = this.add.rectangle(0, -12, 172, 22, 0xffffff, 0.1)
     
-    const label = this.add.text(0, 0, text, {
-      fontSize: '16px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      fontFamily: 'Noto Sans SC, sans-serif'
-    }).setOrigin(0.5)
+    // 高清文字
+    const label = createHDText(this, 0, 0, text, createTextStyle({
+      fontSize: 16,
+      fontStyle: 'bold'
+    })).setOrigin(0.5)
     
     container.add([shadow, bg, highlight, label])
     container.setSize(180, 50)
@@ -1131,10 +1145,10 @@ export class GameScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, 250, 40, color.bg, 0.95)
     bg.setStrokeStyle(2, color.border)
     
-    const text = this.add.text(0, 0, message, {
-      fontSize: '13px',
-      color: '#ffffff'
-    }).setOrigin(0.5)
+    // 高清文字
+    const text = createHDText(this, 0, 0, message, createTextStyle({
+      fontSize: 14
+    })).setOrigin(0.5)
     
     container.add([bg, text])
     container.setAlpha(0)
@@ -1236,26 +1250,25 @@ export class GameScene extends Phaser.Scene {
     )
     bg.setStrokeStyle(2, isCorrect ? 0x50c878 : 0xff6b6b)
     
-    // Icon
-    const icon = this.add.text(-tooltipWidth/2 + 15, -tooltipHeight/2 + 12, 
+    // Icon - 高清
+    const icon = createHDText(this, -tooltipWidth/2 + 15, -tooltipHeight/2 + 12, 
       isCorrect ? '✓' : '✗', 
-      { fontSize: '18px', color: isCorrect ? '#50c878' : '#ff6b6b' }
+      createTextStyle({ fontSize: 18, color: isCorrect ? '#50c878' : '#ff6b6b' })
     )
     
-    // Word title
-    const title = this.add.text(-tooltipWidth/2 + 40, -tooltipHeight/2 + 10, word, {
-      fontSize: '14px',
-      color: '#ffffff',
+    // Word title - 高清
+    const title = createHDText(this, -tooltipWidth/2 + 40, -tooltipHeight/2 + 10, word, createTextStyle({
+      fontSize: 14,
       fontStyle: 'bold'
-    })
+    }))
     
-    // Explanation text
-    const text = this.add.text(0, 5, explanation, {
-      fontSize: '12px',
+    // Explanation text - 高清
+    const text = createHDText(this, 0, 5, explanation, createTextStyle({
+      fontSize: 12,
       color: '#cccccc',
-      wordWrap: { width: tooltipWidth - 30 },
+      wordWrapWidth: tooltipWidth - 30,
       align: 'center'
-    }).setOrigin(0.5, 0)
+    })).setOrigin(0.5, 0)
     
     container.add([bg, icon, title, text])
     container.setAlpha(0)
@@ -1323,16 +1336,13 @@ export class GameScene extends Phaser.Scene {
           ease: 'Sine.easeInOut'
         })
         
-        // Temporary glow effect
-        const originalColor1 = card1.cardData.type === 'word' ? 0x4a90d9 : 0x50c878
-        const originalColor2 = card2.cardData.type === 'word' ? 0x4a90d9 : 0x50c878
+        // 临时高亮效果 - 使用选中效果
+        this.cardManager.selectCard(card1)
+        this.cardManager.selectCard(card2)
         
-        card1.background.setFillStyle(0xffd700)
-        card2.background.setFillStyle(0xffd700)
-        
-        this.time.delayedCall(1500, () => {
-          if (card1.container.active) card1.background.setFillStyle(originalColor1)
-          if (card2.container.active) card2.background.setFillStyle(originalColor2)
+        this.time.delayedCall(1800, () => {
+          if (card1.container.active) this.cardManager.deselectCard(card1)
+          if (card2.container.active) this.cardManager.deselectCard(card2)
         })
       }
     }
