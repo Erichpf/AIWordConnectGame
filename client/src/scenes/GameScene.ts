@@ -343,15 +343,41 @@ export class GameScene extends Phaser.Scene {
    * 创建浮动粒子效果
    */
   private createFloatingParticles(w: number, h: number): void {
+    // 先绘制渐变背景
+    const bgGraphics = this.add.graphics()
+    bgGraphics.setDepth(-20)
+    
+    // 渐变背景
+    const gradientSteps = 15
+    for (let i = 0; i < gradientSteps; i++) {
+      const ratio = i / gradientSteps
+      const y = h * ratio
+      const stepHeight = h / gradientSteps + 1
+      const r = Math.floor(0x1a + (0x25 - 0x1a) * ratio)
+      const g = Math.floor(0x1a + (0x1a - 0x1a) * ratio)
+      const b = Math.floor(0x2e + (0x3a - 0x2e) * ratio)
+      const color = (r << 16) | (g << 8) | b
+      bgGraphics.fillStyle(color, 1)
+      bgGraphics.fillRect(0, y, w, stepHeight)
+    }
+    
+    // 添加光晕
+    bgGraphics.fillStyle(0x4a90d9, 0.06)
+    bgGraphics.fillCircle(w * 0.1, h * 0.3, 150)
+    bgGraphics.fillCircle(w * 0.9, h * 0.7, 180)
+    
+    bgGraphics.fillStyle(0x50c878, 0.05)
+    bgGraphics.fillCircle(w * 0.8, h * 0.2, 100)
+    
     const symbols = ['📚', '💡', '⭐', '✨', '💫', '🌟', '📖', '🎯']
     
     // 游戏场景粒子数量适中，避免干扰
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 18; i++) {
       const symbol = symbols[i % symbols.length]
       const x = Phaser.Math.Between(30, w - 30)
       const y = Phaser.Math.Between(70, h - 70)
-      const size = Phaser.Math.Between(12, 24)
-      const baseAlpha = Phaser.Math.FloatBetween(0.05, 0.12)
+      const size = Phaser.Math.Between(14, 28)
+      const baseAlpha = Phaser.Math.FloatBetween(0.12, 0.25)
       
       const particle = this.add.text(x, y, symbol, {
         fontSize: `${size}px`
@@ -361,7 +387,7 @@ export class GameScene extends Phaser.Scene {
         targets: particle,
         y: y + Phaser.Math.Between(-40, 40),
         x: x + Phaser.Math.Between(-30, 30),
-        alpha: { from: baseAlpha * 0.5, to: baseAlpha * 1.3 },
+        alpha: { from: baseAlpha * 0.6, to: baseAlpha * 1.2 },
         duration: Phaser.Math.Between(5000, 9000),
         yoyo: true,
         repeat: -1,
@@ -379,18 +405,20 @@ export class GameScene extends Phaser.Scene {
       })
     }
     
-    // 小光点
-    for (let i = 0; i < 10; i++) {
+    // 彩色光点
+    const dotColors = [0xffffff, 0x4a90d9, 0x50c878, 0xffd700]
+    for (let i = 0; i < 15; i++) {
       const x = Phaser.Math.Between(50, w - 50)
       const y = Phaser.Math.Between(80, h - 80)
+      const color = dotColors[i % dotColors.length]
       
-      const dot = this.add.circle(x, y, Phaser.Math.Between(1, 3), 0xffffff, 0.1)
+      const dot = this.add.circle(x, y, Phaser.Math.Between(2, 4), color, 0.2)
       dot.setDepth(-10)
       
       this.tweens.add({
         targets: dot,
-        alpha: { from: 0.03, to: 0.15 },
-        scale: { from: 0.7, to: 1.2 },
+        alpha: { from: 0.08, to: 0.35 },
+        scale: { from: 0.7, to: 1.3 },
         duration: Phaser.Math.Between(3000, 5000),
         yoyo: true,
         repeat: -1,

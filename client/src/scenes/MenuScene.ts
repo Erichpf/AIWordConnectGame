@@ -92,20 +92,39 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createBackground(w: number, h: number): void {
-    // 添加装饰性圆形
+    // 渐变背景
     const graphics = this.add.graphics()
     
-    // 大圆形装饰
-    graphics.fillStyle(0x4a90d9, 0.05)
-    graphics.fillCircle(w * 0.1, h * 0.2, 150)
-    graphics.fillCircle(w * 0.9, h * 0.8, 200)
+    // 深蓝到紫色渐变效果（用多个矩形模拟）
+    const gradientSteps = 20
+    for (let i = 0; i < gradientSteps; i++) {
+      const ratio = i / gradientSteps
+      const y = h * ratio
+      const stepHeight = h / gradientSteps + 1
+      // 从深蓝 (0x1a1a2e) 渐变到深紫 (0x2d1f3d)
+      const r = Math.floor(0x1a + (0x2d - 0x1a) * ratio)
+      const g = Math.floor(0x1a + (0x1f - 0x1a) * ratio)
+      const b = Math.floor(0x2e + (0x3d - 0x2e) * ratio)
+      const color = (r << 16) | (g << 8) | b
+      graphics.fillStyle(color, 1)
+      graphics.fillRect(0, y, w, stepHeight)
+    }
     
-    graphics.fillStyle(0x50c878, 0.05)
-    graphics.fillCircle(w * 0.85, h * 0.15, 100)
-    graphics.fillCircle(w * 0.15, h * 0.85, 120)
+    // 添加装饰性圆形光晕
+    graphics.fillStyle(0x4a90d9, 0.08)
+    graphics.fillCircle(w * 0.1, h * 0.2, 180)
+    graphics.fillCircle(w * 0.9, h * 0.8, 220)
+    
+    graphics.fillStyle(0x50c878, 0.08)
+    graphics.fillCircle(w * 0.85, h * 0.15, 120)
+    graphics.fillCircle(w * 0.15, h * 0.85, 140)
+    
+    graphics.fillStyle(0x9b59b6, 0.06)
+    graphics.fillCircle(w * 0.5, h * 0.1, 100)
+    graphics.fillCircle(w * 0.3, h * 0.6, 90)
 
     // 添加网格线装饰
-    graphics.lineStyle(1, 0xffffff, 0.03)
+    graphics.lineStyle(1, 0xffffff, 0.04)
     for (let i = 0; i < w; i += 60) {
       graphics.lineBetween(i, 0, i, h)
     }
@@ -126,8 +145,8 @@ export class MenuScene extends Phaser.Scene {
       const symbol = symbols[i % symbols.length]
       const x = Phaser.Math.Between(30, w - 30)
       const y = Phaser.Math.Between(60, h - 60)
-      const size = Phaser.Math.Between(14, 32)
-      const baseAlpha = Phaser.Math.FloatBetween(0.08, 0.2)
+      const size = Phaser.Math.Between(16, 36)
+      const baseAlpha = Phaser.Math.FloatBetween(0.15, 0.35)
       
       const particle = this.add.text(x, y, symbol, {
         fontSize: `${size}px`
@@ -138,7 +157,7 @@ export class MenuScene extends Phaser.Scene {
         targets: particle,
         y: y + Phaser.Math.Between(-50, 50),
         x: x + Phaser.Math.Between(-40, 40),
-        alpha: { from: baseAlpha * 0.5, to: baseAlpha * 1.5 },
+        alpha: { from: baseAlpha * 0.6, to: baseAlpha * 1.3 },
         duration: Phaser.Math.Between(4000, 8000),
         yoyo: true,
         repeat: -1,
@@ -159,18 +178,21 @@ export class MenuScene extends Phaser.Scene {
       })
     }
     
-    // 添加一些小光点
-    for (let i = 0; i < 15; i++) {
+    // 添加更亮的光点
+    for (let i = 0; i < 20; i++) {
       const x = Phaser.Math.Between(50, w - 50)
       const y = Phaser.Math.Between(80, h - 80)
+      const radius = Phaser.Math.Between(2, 5)
+      const colors = [0xffffff, 0x4a90d9, 0x50c878, 0xffd700]
+      const color = colors[i % colors.length]
       
-      const dot = this.add.circle(x, y, Phaser.Math.Between(2, 4), 0xffffff, 0.15)
+      const dot = this.add.circle(x, y, radius, color, 0.25)
       dot.setDepth(-1)
       
       this.tweens.add({
         targets: dot,
-        alpha: { from: 0.05, to: 0.3 },
-        scale: { from: 0.8, to: 1.3 },
+        alpha: { from: 0.1, to: 0.5 },
+        scale: { from: 0.8, to: 1.4 },
         duration: Phaser.Math.Between(2000, 4000),
         yoyo: true,
         repeat: -1,
