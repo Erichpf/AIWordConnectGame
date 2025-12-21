@@ -91,19 +91,21 @@ export class AIService {
       hard: '较难/不常见'
     }
 
+    // 添加随机种子提高多样性
+    const randomSeed = Math.floor(Math.random() * 10000)
+
     if (language === 'zh') {
       return `请生成${count}个关于"${theme}"主题的中文成语，难度为${levelDescriptions[level]}。
 
 要求：
 1. 每个成语包含：word(成语)、meaning(释义)、hint(文化背景或典故)、confuse(易混淆的成语，可选)
 2. 返回JSON数组格式
-3. 确保成语与主题相关
+3. 确保成语与主题相关且彼此不重复
 4. hint字段要包含文化背景信息
+5. 请发挥创意，选择不常被提及的成语，避免总是选择最常见的那几个
+6. 随机种子：${randomSeed}
 
-返回格式示例：
-[
-  {"word": "学而不厌", "meaning": "学习而不感到满足", "hint": "出自《论语》，孔子形容好学的态度", "confuse": "诲人不倦"}
-]
+返回格式：[{"word": "成语", "meaning": "释义", "hint": "典故", "confuse": "易混淆成语"}]
 
 请直接返回JSON数组，不要包含其他文字。`
     } else {
@@ -112,13 +114,11 @@ export class AIService {
 Requirements:
 1. Each word should include: word, meaning, hint (with example sentence), confuse (similar word, optional)
 2. Return as JSON array
-3. Ensure words are relevant to the theme
-4. hint field should contain an example sentence
+3. Ensure words are relevant to the theme and unique from each other
+4. Be creative, choose less common words, avoid always picking the most obvious ones
+5. Random seed: ${randomSeed}
 
-Return format example:
-[
-  {"word": "acquire", "meaning": "to gain knowledge or skill", "hint": "Example: She acquired fluency in French.", "confuse": "obtain"}
-]
+Return format: [{"word": "word", "meaning": "definition", "hint": "example sentence", "confuse": "similar word"}]
 
 Please return only the JSON array, no other text.`
     }
