@@ -2,8 +2,10 @@
  * AI Service Module
  * Requirements: 8.2, 8.3, 8.4
  * Handles AI content generation with retry and fallback logic
+ * Using GLM API via OpenAI SDK
  */
 
+import OpenAI from 'openai'
 import { WordCard, Language, Level, GameStats } from 'shared'
 
 interface GenerateParams {
@@ -27,13 +29,21 @@ interface AIWordResponse {
 }
 
 export class AIService {
-  private apiKey: string | undefined
-  private apiEndpoint: string
+  private client: OpenAI | null = null
+  private model: string
   private maxRetries: number = 1
 
   constructor() {
-    this.apiKey = process.env.AI_API_KEY
-    this.apiEndpoint = process.env.AI_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions'
+    const apiKey = process.env.AI_API_KEY || 'sk-6e734e8eb7d04f5e9a6293c254f6ee76'
+    const baseURL = process.env.AI_API_ENDPOINT || 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+    this.model = process.env.AI_MODEL || 'glm-4.6'
+
+    if (apiKey) {
+      this.client = new OpenAI({
+        apiKey,
+        baseURL
+      })
+    }
   }
 
   /**
@@ -41,7 +51,7 @@ export class AIService {
    * Requirements: 8.2, 8.3, 8.4
    */
   async generateContent(params: GenerateParams): Promise<AIGenerateResult> {
-    if (!this.apiKey) {
+    if (!this.client) {
       return { success: false, data: [], error: 'AI API key not configured' }
     }
 
@@ -115,32 +125,24 @@ Please return only the JSON array, no other text.`
   }
 
   /**
-   * Call AI API
+   * Call AI API using OpenAI SDK
    */
   private async callAI(prompt: string): Promise<string> {
-    const response = await fetch(this.apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: process.env.AI_MODEL || 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant that generates educational word content.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.status} ${response.statusText}`)
+    if (!this.client) {
+      throw new Error('AI client not initialized')
     }
 
-    const data = await response.json()
-    return data.choices?.[0]?.message?.content || ''
+    const completion = await this.client.chat.completions.create({
+      model: this.model,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant that generates educational word content.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    })
+
+    return completion.choices?.[0]?.message?.content || ''
   }
 
   /**
@@ -230,7 +232,7 @@ Please return only the JSON array, no other text.`
    * Generate explanation for a word pair
    */
   async generateExplanation(word: string, meaning: string, isCorrect: boolean): Promise<string> {
-    if (!this.apiKey) {
+    if (!this.client) {
       return isCorrect 
         ? `正确！"${word}"的意思是：${meaning}` 
         : `"${word}"的正确释义是：${meaning}`
@@ -254,7 +256,7 @@ Please return only the JSON array, no other text.`
    * Generate learning summary
    */
   async generateSummary(stats: GameStats): Promise<string> {
-    if (!this.apiKey) {
+    if (!this.client) {
       return this.generateLocalSummary(stats)
     }
 

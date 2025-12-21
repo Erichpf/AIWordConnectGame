@@ -3,6 +3,14 @@
  * Requirements: 8.1
  */
 
+import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// 加载 .env 文件（相对于当前文件位置）
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+
 import express, { Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import { ErrorResponse } from 'shared'
