@@ -98,6 +98,10 @@ export class GameScene extends Phaser.Scene {
     this.matchHistory = []
     this.correctCount = 0
     this.wrongCount = 0
+    this.comboCount = 0
+    this.maxCombo = 0
+    this.totalPairs = 0
+    this.remainingPairs = 0
   }
 
   async create(): Promise<void> {
@@ -455,8 +459,12 @@ export class GameScene extends Phaser.Scene {
       this.tweens.add({ targets: this.hintButton, scale: 1, duration: 100 })
     })
     this.hintButton.on('pointerdown', () => {
-      this.highlightHintPair()
-      this.showToast('💡 已显示提示', 'info')
+      const found = this.highlightHintPair()
+      if (found) {
+        this.showToast('💡 已显示提示', 'info')
+      } else {
+        this.showToast('没有可用的配对', 'info')
+      }
     })
   }
   
@@ -1345,7 +1353,7 @@ export class GameScene extends Phaser.Scene {
    * Highlight a valid pair as hint
    * Requirements: 7.3
    */
-  private highlightHintPair(): void {
+  private highlightHintPair(): boolean {
     const boardState = this.boardManager.getBoardState()
     const validPair = this.findValidPair(boardState)
     
@@ -1372,8 +1380,10 @@ export class GameScene extends Phaser.Scene {
           if (card1.container.active) this.cardManager.deselectCard(card1)
           if (card2.container.active) this.cardManager.deselectCard(card2)
         })
+        return true
       }
     }
+    return false
   }
 
   /**
