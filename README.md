@@ -82,23 +82,3 @@ npm run test:server
 3. 点击两张匹配的卡片（词语与释义）
 4. 两张卡片需要能通过不超过 2 个拐点的路径连接
 5. 消除所有卡片即可通关
-
-## API 接口
-
-### 获取词汇数据
-
-```
-POST /api/words/generate
-
-请求体：
-{
-  "language": "zh" | "en",
-  "level": "easy" | "medium" | "hard",
-  "theme": "learning",
-  "count": 8
-}
-```
-
-## License
-
-MIT
